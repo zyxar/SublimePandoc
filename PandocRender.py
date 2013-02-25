@@ -8,7 +8,6 @@ import subprocess
 
 
 plugin_path = os.path.dirname(os.path.abspath(__file__))
-settings = sublime.load_settings('Pandoc.sublime-settings')
 
 class PandocRenderCommand(sublime_plugin.TextCommand):
     """ render file contents to HTML and, optionally, open in your web browser"""
@@ -28,6 +27,18 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
     def run(self, edit, target="html", openAfter=True, writeBeside=False, additionalArguments=[]):
         if not target in ["html","docx"]: raise Exception("target must be either 'html' or 'docx'")
 
+        # determin pandoc binary
+        settings = sublime.load_settings('Pandoc.sublime-settings')
+        pandoc_path = settings.get('pandoc_path')
+        if pandoc_path is not None:
+            pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), 'pandoc')
+        else:
+            pandoc_bin = settings.get('pandoc_bin') or 'pandoc' # set to default in $PATH
+            pandoc_bin = os.path.expanduser(pandoc_bin)
+        if not os.path.exists(pandoc_bin):
+            sublime.error_message("Unable to load pandoc engine: {0}\n\nYou can specify Pandoc in settings.".format(pandoc_bin))
+            return
+
         # grab contents of buffer
         region = sublime.Region(0, self.view.size())
         encoding = self.view.encoding()
@@ -39,7 +50,7 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
 
         # write buffer to temporary file
         tmp_md = tempfile.NamedTemporaryFile(delete=False, suffix=".md")
-        tmp_md.write(contents)
+        tmp_md.write(bytes(contents, 'UTF-8'))
         tmp_md.close()
 
         # output file...
@@ -53,15 +64,6 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
             output_filename=tmp_html.name
 
         # build output
-        pandoc_path = settings.get('pandoc_path')
-        if pandoc_path is not None:
-            pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), 'pandoc')
-        else:
-            pandoc_bin = settings.get('pandoc_bin') or 'pandoc' # set to default in $PATH
-            pandoc_bin = os.path.expanduser(pandoc_bin)
-        if not os.path.exists(pandoc_bin):
-            sublime.error_message("Unable to load pandoc engine: {0}\n\nYou can specify Pandoc in settings.".format(pandoc_bin))
-            return
         cmd = [pandoc_bin]
         cmd.append('-t')
         cmd.append({'html':'html5', 'docx':'docx'}[target])
@@ -86,11 +88,11 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
             sublime.error_message("Error in executing Pandoc.  \n\nDetails: {0}".format(e))
 
 
-        print "Wrote:", output_filename
+        print("Wrote: %s" % output_filename)
 
         if openAfter:
             if target == "html":
-                webbrowser.open_new_tab(output_filename)
+                webbrowser.open_new_tab("file://%s"%output_filename)
             # perhaps there is a better way of handling the DocX opening...?
             elif target == "docx" and sys.platform == "win32":
                 os.startfile(output_filename)
