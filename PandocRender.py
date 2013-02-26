@@ -8,7 +8,6 @@ import subprocess
 
 
 plugin_path = os.path.dirname(os.path.abspath(__file__))
-settings = sublime.load_settings('Pandoc.sublime-settings')
 
 class PandocRenderCommand(sublime_plugin.TextCommand):
     """ render file contents to HTML and, optionally, open in your web browser"""
@@ -25,25 +24,38 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
     def is_visible(self):
         return True 
 
+    def get_pandoc(self):
+        # determin pandoc binary
+        try:
+            return self.pandoc_bin
+        except:
+            settings = sublime.load_settings('Pandoc.sublime-settings')
+            pandoc_path = settings.get('pandoc_path')
+            if pandoc_path is not None:
+                pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), 'pandoc')
+            else:
+                pandoc_bin = settings.get('pandoc_bin') or 'pandoc' # set to default in $PATH
+                pandoc_bin = os.path.expanduser(pandoc_bin)
+            if os.path.exists(pandoc_bin):
+                self.pandoc_bin = pandoc_bin
+                return pandoc_bin
+
+            paths = [path for path in os.environ['PATH'].split(':')]
+            paths.extend(['/usr/local/bin', '/opt/bin', '/opt/local/bin', '/Library/Haskell/bin'])
+            for path in paths:
+                pandoc_bin = os.path.join(path, 'pandoc')
+                if os.path.exists(pandoc_bin):
+                    self.pandoc_bin = pandoc_bin
+                    return pandoc_bin
+            return None
+
     def run(self, edit, target="html", openAfter=True, writeBeside=False, additionalArguments=[]):
         if not target in ["html","docx"]: raise Exception("target must be either 'html' or 'docx'")
 
-        # determin pandoc binary
-        pandoc_path = settings.get('pandoc_path')
-        if pandoc_path is not None:
-            pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), 'pandoc')
-        else:
-            pandoc_bin = settings.get('pandoc_bin') or 'pandoc' # set to default in $PATH
-            pandoc_bin = os.path.expanduser(pandoc_bin)
-        if not os.path.exists(pandoc_bin):
-            found = False
-            if pandoc_bin == 'pandoc':
-                bools = [os.path.exists(os.path.join(p, pandoc_bin)) for p in os.environ['PATH'].split(':')]
-                if bools.count(True):
-                    found = True
-            if not found:
-                sublime.error_message("Unable to load pandoc engine: {0}\n\nYou can specify Pandoc in settings.".format(pandoc_bin))
-                return
+        pandoc_bin = self.get_pandoc()
+        if pandoc_bin is None:
+            sublime.error_message("Unable to load pandoc engine.\n\nYou can specify Pandoc in settings.")
+            return
 
         # grab contents of buffer
         region = sublime.Region(0, self.view.size())
