@@ -8,6 +8,8 @@ import subprocess
 
 
 plugin_path = os.path.dirname(os.path.abspath(__file__))
+is_windows = sublime.platform() == 'windows'
+pandoc_file = 'pandoc.exe' if is_windows else 'pandoc'
 
 class PandocRenderCommand(sublime_plugin.TextCommand):
     """ render file contents to HTML and, optionally, open in your web browser"""
@@ -32,18 +34,21 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
             settings = sublime.load_settings('Pandoc.sublime-settings')
             pandoc_path = settings.get('pandoc_path')
             if pandoc_path is not None:
-                pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), 'pandoc')
+                pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), pandoc_file)
             else:
-                pandoc_bin = settings.get('pandoc_bin') or 'pandoc' # set to default in $PATH
+                pandoc_bin = settings.get('pandoc_bin') or pandoc_file # set to default in $PATH
                 pandoc_bin = os.path.expanduser(pandoc_bin)
             if os.path.exists(pandoc_bin):
                 self.pandoc_bin = pandoc_bin
                 return pandoc_bin
-
-            paths = [path for path in os.environ['PATH'].split(':')]
-            paths.extend(['/usr/local/bin', '/opt/bin', '/opt/local/bin', '/Library/Haskell/bin'])
+            if is_windows:
+                paths = [path for path in os.environ['PATH'].split(';')]
+            else:
+            # UNIX path
+                paths = [path for path in os.environ['PATH'].split(':')]
+                paths.extend(['/usr/local/bin', '/opt/bin', '/opt/local/bin', '/Library/Haskell/bin'])
             for path in paths:
-                pandoc_bin = os.path.join(path, 'pandoc')
+                pandoc_bin = os.path.join(path, pandoc_file)
                 if os.path.exists(pandoc_bin):
                     self.pandoc_bin = pandoc_bin
                     return pandoc_bin
