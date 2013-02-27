@@ -1,20 +1,21 @@
-# Pandoc Plugin for Sublime Text 2 #
+# Pandoc Plugin for Sublime Text 3 #
 
-A [Sublime Text 2](http://www.sublimetext.com/2) plugin for calling the Pandoc Markdown renderer to create HTML and DocX output.  Pandoc does a LOT more than this but this is the specific functionality I use.
+A [Sublime Text 3](http://www.sublimetext.com/3) plugin for calling the Pandoc Markdown renderer to create HTML and DocX output.  Pandoc does a LOT more than this but this is the specific functionality I use.
+
+This fork is made for ST3; for Sublime Text 2, click [here](https://github.com/jclement/SublimePandoc)
 
 ## Installation ##
 
-The easiest way is to install "SublimePandoc" using [Package Control](http://wbond.net/sublime_packages/package_control).
-
-You can also grab the latest from Github and install it into your Sublime Text 2 Packages folder.
+Grab the latest from Github and install it into your Sublime Text 3 Packages folder.
 
 ~~~~~~~~~~~~~ {#mycode .sh}
-$ git clone git://github.com/jclement/SublimePandoc.git
+$ git clone https://github.com/zyxar/SublimePandoc.git
 ~~~~~~~~~~~~~~~~~~~~~~
 
 ## Dependencies ##
 
-You'll need to download and install [Pandoc] and have it in your PATH.
+You'll need to download and install [Pandoc].
+Also you should have it in your `$PATH` or specify it in SublimePandoc settings.
 
 ## Available Commands ##
 
@@ -43,9 +44,30 @@ The following hints can be added in your document to flip on additional features
 
 ## Sample Keybindings ##
 
+The default keymapping on OS X...
+
+~~~~~ {#mycode .json .numberLines startFrom='0'}
+[
+  { "keys": ["super+alt+r"],     
+    "command":"pandoc_render", 
+    "args":{"openAfter":true,   "target":"html",  "writeBeside":false},
+    "context":[{"key": "selector", "operator": "equal", "operand": "text.html.markdown" }]},
+
+  { "keys": ["super+alt+shift+d"],   
+    "command":"pandoc_render", 
+    "args":{"openAfter":true,   "target":"docx",  "writeBeside":true},
+    "context":[{"key": "selector", "operator": "equal", "operand": "text.html.markdown" }]},
+
+  { "keys": ["super+alt+shift+r"],   
+    "command":"pandoc_render", 
+    "args":{"openAfter":false,  "target":"html",  "writeBeside":true},
+    "context":[{"key": "selector", "operator": "equal", "operand": "text.html.markdown" }]}
+]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 The default keymapping on Windows...
 
-~~~~~ {#mycode .python .numberLines startFrom="100"}
+~~~~~ {#mycode .json .numberLines startFrom="100"}
 [
   { "keys": ["ctrl+alt+r"],     
     "command":"pandoc_render", 
