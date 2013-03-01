@@ -43,6 +43,7 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
                 return pandoc_bin
             if is_windows:
                 paths = [path for path in os.environ['PATH'].split(';')]
+                paths.extend(['C:\\Program Files\\Pandoc\\bin', 'C:\\Program Files (x86)\\Pandoc\\bin'])
             else:
             # UNIX path
                 paths = [path for path in os.environ['PATH'].split(':')]
