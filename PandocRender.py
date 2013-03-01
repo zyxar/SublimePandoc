@@ -32,6 +32,12 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
             return self.pandoc_bin
         except:
             settings = sublime.load_settings('Pandoc.sublime-settings')
+            # ~~~~ check if detected
+            self.pandoc_bin = settings.get('PANDOC')
+            if self.pandoc_bin is not None:
+                return self.pandoc_bin
+            # ~~~~~~~~~~~~~~~~~~~~~~
+            # ~~~~ respect user preference
             pandoc_path = settings.get('pandoc_path')
             if pandoc_path is not None:
                 pandoc_bin = os.path.join(os.path.expanduser(pandoc_path), pandoc_file)
@@ -41,19 +47,29 @@ class PandocRenderCommand(sublime_plugin.TextCommand):
             if os.path.exists(pandoc_bin):
                 self.pandoc_bin = pandoc_bin
                 return pandoc_bin
-            if is_windows:
-                paths = [path for path in os.environ['PATH'].split(';')]
-                paths.extend(['C:\\Program Files\\Pandoc\\bin', 'C:\\Program Files (x86)\\Pandoc\\bin'])
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # ~~~~ try to detect `pandoc`
+            try:
+                subprocess.call(['pandoc'])
+            except:
+                if is_windows:
+                    paths = ['C:\\Program Files\\Pandoc\\bin', 'C:\\Program Files (x86)\\Pandoc\\bin']
+                else:
+                # UNIX path
+                    paths = (['/usr/local/bin', '/opt/bin', '/opt/local/bin', '/Library/Haskell/bin'])
+                for path in paths:
+                    pandoc_bin = os.path.join(path, pandoc_file)
+                    if os.path.exists(pandoc_bin):
+                        self.pandoc_bin = pandoc_bin
+                        return pandoc_bin
+                return None
             else:
-            # UNIX path
-                paths = [path for path in os.environ['PATH'].split(':')]
-                paths.extend(['/usr/local/bin', '/opt/bin', '/opt/local/bin', '/Library/Haskell/bin'])
-            for path in paths:
-                pandoc_bin = os.path.join(path, pandoc_file)
-                if os.path.exists(pandoc_bin):
-                    self.pandoc_bin = pandoc_bin
-                    return pandoc_bin
-            return None
+                self.pandoc_bin = 'pandoc'
+                return self.pandoc_bin
+            finally:
+                settings.set('PANDOC', self.pandoc_bin)
+                sublime.save_settings('Pandoc.sublime-settings') # saved in User/
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def run(self, edit, target="html", openAfter=True, writeBeside=False, additionalArguments=[]):
         if not target in ["html","docx"]: raise Exception("target must be either 'html' or 'docx'")
